@@ -293,3 +293,79 @@ document.addEventListener('DOMContentLoaded', function() {
     generateSampleRecipes();
     generateSampleNursingHomes();
 });
+// 在现有代码基础上添加这个函数
+async function sendRealMessage(message) {
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: message
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('网络请求失败');
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.reply;
+    } else {
+      throw new Error(data.error || '未知错误');
+    }
+    
+  } catch (error) {
+    console.error('发送消息失败:', error);
+    return "抱歉，我现在无法回复您。请检查网络连接或稍后再试。";
+  }
+}
+
+// 替换原来的sendMessage函数
+async function sendMessage() {
+  const message = messageInput.value.trim();
+  if (message === '') return;
+  
+  // 添加用户消息
+  addMessage(message, 'user');
+  messageInput.value = '';
+  
+  // 显示加载状态
+  const loadingId = showLoadingMessage();
+  
+  // 调用真实API
+  const aiReply = await sendRealMessage(message);
+  
+  // 移除加载消息
+  removeLoadingMessage(loadingId);
+  
+  // 添加AI回复
+  addMessage(aiReply, 'ai');
+  
+  // 如果语音朗读开启，朗读AI回复
+  if (voiceSwitch.checked) {
+    speakText(aiReply);
+  }
+}
+
+// 添加加载消息功能
+function showLoadingMessage() {
+  const loadingId = 'loading-' + Date.now();
+  const loadingMessage = document.createElement('div');
+  loadingMessage.id = loadingId;
+  loadingMessage.classList.add('message', 'ai-message');
+  loadingMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 思考中...';
+  chatMessages.appendChild(loadingMessage);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return loadingId;
+}
+
+function removeLoadingMessage(loadingId) {
+  const loadingElement = document.getElementById(loadingId);
+  if (loadingElement) {
+    loadingElement.remove();
+  }
+}
